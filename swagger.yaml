@@ -1,0 +1,39 @@
+openapi: 3.0.1
+
+info:
+  title: gpt-2-large
+  description: |
+      This server provide predict next word using gpt-2-large model from [openai github](https://github.com/openai/gpt-2)
+  version: "0.1"
+servers:
+  - url: https://main-gpt-2-server-gkswjdzz.endpoint.ainize.ai
+paths:
+  /large:
+    post:
+      tags:
+      - gpt-2-large
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                context:
+                  type: string
+                length:
+                  type: string
+                  enum: ['1', x]
+      responses:
+        '200':
+          description: success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+        '500':
+          description: Server side error
+tags:
+- name: gpt-2-large
