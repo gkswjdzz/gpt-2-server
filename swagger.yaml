@@ -8,6 +8,34 @@ info:
 servers:
   - url: https://main-gpt-2-server-gkswjdzz.endpoint.ainize.ai
 paths:
+  /torch-serve:
+    post:
+      tags:
+      - gpt-2-large
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                context:
+                  type: string
+                num_samples:
+                  type: number
+                length:
+                  type: number
+      responses:
+        '200':
+          description: success
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+        '500':
+          description: Server side error
   /large:
     post:
       tags:
