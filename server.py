@@ -2,6 +2,9 @@ from flask import Flask, request, abort, jsonify
 import requests
 from lib import encode, decode
 import json
+from transformers import AutoTokenizer
+
+tokenizer = AutoTokenizer.from_pretrained("gpt2-large")
 
 app = Flask(__name__)
 
@@ -9,6 +12,49 @@ SERVERS = {
   'length-1': 'https://length-1-gpt-2-large-tf-serving-gkswjdzz.endpoint.ainize.ai/v1/models/gpt-2-large:predict',
   'length-x': 'https://main-gpt-2-large-tf-serving-gkswjdzz.endpoint.ainize.ai/v1/models/gpt-2-large:predict'
 }
+
+TORCH_MODELS = {
+  'base': 'https://base-gpt-2-large-torch-serving-gkswjdzz.endpoint.ainize.ai/predictions/gpt2-large'
+}
+
+@app.route('/torch-serve', methods=['POST'])
+def torch():
+  keys = list(request.form.keys())
+
+  if len(keys) != 3 :
+    return jsonify({'message': 'invalid body'}), 400
+  
+  raw_text_key = list(request.form.keys())[0]
+  num_samples_key = list(request.form.keys())[1]
+  length_key = list(request.form.keys())[2] 
+  
+  raw_text = request.form[raw_text_key]
+  num_samples = request.form[num_samples_key]
+  length = request.form[length_key]
+  
+  encoded_text = tokenizer.encode(raw_text)
+
+  data = {
+    'text': encoded_text,
+    'num_samples': int(num_samples),
+    'length': int(length)
+  }
+
+  headers = {'Content-Type': 'application/json; charset=utf-8'}
+  res = requests.post('https://base-gpt-2-large-torch-serving-gkswjdzz.endpoint.ainize.ai/predictions/gpt2-large', headers=headers, data=json.dumps(data))
+
+
+  if res.status_code != 200:
+    return jsonify({'message': 'error'}), res.status_code
+
+  response = res.json()
+
+  result = dict()
+  for idx, sample_output in enumerate(response):
+    result[idx] = tokenizer.decode(sample_output, skip_special_tokens=True)
+
+  return result, 200
+
 @app.route('/large', methods=['POST'])
 def large():
   keys = list(request.form.keys())
