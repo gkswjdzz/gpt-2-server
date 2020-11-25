@@ -32,7 +32,7 @@ def postprocess():
         contents = request.get_json()
         result = {}
         for idx, content in enumerate(contents):
-            result[idx] = tokenizer.decode(content)
+            result[idx] = {'text': tokenizer.decode(content)}
         return jsonify(result), 200
     return jsonify({}), 400
 
