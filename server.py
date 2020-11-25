@@ -44,19 +44,19 @@ def torch():
     if len(keys) != 3:
         return jsonify({'message': 'invalid body'}), 400
 
-    raw_text_key = list(request.form.keys())[0]
-    num_samples_key = list(request.form.keys())[1]
-    length_key = list(request.form.keys())[2]
+    rawTextKey = list(request.form.keys())[0]
+    numResultsRequestKey = list(request.form.keys())[1]
+    lengthKey = list(request.form.keys())[2]
 
-    raw_text = request.form[raw_text_key]
-    num_samples = request.form[num_samples_key]
-    length = request.form[length_key]
+    rawText = request.form[rawTextKey]
+    numResultsRequest = request.form[numResultsRequestKey]
+    length = request.form[lengthKey]
 
-    encoded_text = tokenizer.encode(raw_text)
+    encodedText = tokenizer.encode(rawText)
 
     data = {
-        'text': encoded_text,
-        'num_samples': int(num_samples),
+        'text': encodedText,
+        'numResultsRequest': int(numResultsRequest),
         'length': int(length)
     }
 
@@ -69,8 +69,8 @@ def torch():
     response = res.json()
 
     result = dict()
-    for idx, sample_output in enumerate(response):
-        result[idx] = tokenizer.decode(sample_output, skip_special_tokens=True)
+    for idx, sampleOutput in enumerate(response):
+        result[idx] = tokenizer.decode(sampleOutput, skip_special_tokens=True)
 
     return result, 200
 
@@ -82,12 +82,12 @@ def large():
     if len(keys) != 2:
         return jsonify({'message': 'invalid body'}), 400
 
-    raw_text_key = list(request.form.keys())[0]
-    length_key = list(request.form.keys())[1]
+    rawTextKey = list(request.form.keys())[0]
+    lengthKey = list(request.form.keys())[1]
 
-    raw_text = request.form[raw_text_key]
+    rawText = request.form[rawTextKey]
 
-    length = request.form[length_key]
+    length = request.form[lengthKey]
 
     if not(('length-' + length) in SERVERS.keys()):
         return jsonify({'message': 'body error'}), 400
@@ -95,7 +95,7 @@ def large():
     data = {
         'signature_name': 'predict',
         'instances': [
-            encode(raw_text)
+            encode(rawText)
         ]
     }
 
