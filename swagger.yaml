@@ -101,15 +101,26 @@ paths:
                 type: object
                 properties:
                   index:
-                    type: string
+                    type: object
+                    properties:
+                      result: string
                 example: {
-                  "0": "My name is [name of",
-                  "1": "My name is David, and",
-                  "2": "My name is David and I",
-                  "3": "My name is John\" was",
-                  "4": "My name is Tom Poul"
+                  "0": {
+                    "text": "My name is [name of"
+                  },
+                  "1": {
+                    "text": "My name is David, and"
+                  },
+                  "2": {
+                    "text": "My name is David and I"
+                  },
+                  "3": {
+                    "text": "My name is John\" was"
+                  },
+                  "4": {
+                    "text": "My name is Tom Poul"
+                  }
                 }
-                
         '400':
           description: Bad Request
         '500':
