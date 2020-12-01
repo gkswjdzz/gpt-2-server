@@ -56,7 +56,7 @@ def torch():
 
     data = {
         'text': encodedText,
-        'numResultsRequest': int(numResultsRequest),
+        'num_samples': int(numResultsRequest),
         'length': int(length)
     }
 
