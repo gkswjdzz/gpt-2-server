@@ -103,7 +103,7 @@ paths:
                   index:
                     type: object
                     properties:
-                      result: string
+                      text: string
                 example: {
                   "0": {
                     "text": "My name is [name of"
@@ -138,17 +138,26 @@ paths:
               properties:
                 context:
                   type: string
-                num_samples:
+                  default: "Hi my name is "
+                numResultsRequest:
                   type: number
+                  default: 3
                 length:
                   type: number
+                  default: 4
       responses:
         '200':
           description: success
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
+                type: object
+                properties:
+                  index:
+                    type: string
+                example: {
+                  "0": "Hi my name very good!!! Im jim"
+                }
         '400':
           description: Bad Request
         '500':
