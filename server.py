@@ -42,7 +42,9 @@ def preprocess():
         content = request.get_json()
         replacedContent = translateString(content['context'])
         replacedContent = removeEmoji(replacedContent)
-        return jsonify(json.dumps(tokenizer(replacedContent)['input_ids'])), 200
+        vector = tokenizer(replacedContent)['input_ids']
+        vector.pop()
+        return jsonify(json.dumps(vector)), 200
     return jsonify(json.dumps([-1])), 400
 
 
