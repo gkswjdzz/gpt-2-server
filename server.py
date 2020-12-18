@@ -53,6 +53,7 @@ def postprocess():
         contents = request.get_json()
         result = {}
         for idx, content in enumerate(contents):
+            content.pop()
             result[idx] = {'text': tokenizer.decode(content)}
         return jsonify(result), 200
     return jsonify({}), 400
