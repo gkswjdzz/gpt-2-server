@@ -3,6 +3,7 @@ import requests
 from lib import encode, decode
 import json
 from transformers import AutoTokenizer
+import emoji
 
 tokenizer = AutoTokenizer.from_pretrained("gpt2-large")
 
@@ -17,12 +18,33 @@ TORCH_MODELS = {
   'base': 'https://base-gpt-2-large-torch-serving-gkswjdzz.endpoint.ainize.ai/predictions/gpt2-large'
 }
 
+def removeEmoji(text):
+    return emoji.get_emoji_regexp().sub(u'', text)
+
+
+def translateString(inputText):
+    transDict = {
+        '‘': '\'',
+        '’': '\'',
+        '“': '\"',
+        '”': '\"',
+        '\u2013': '-',
+        '\u2014': '-',
+        '\u3000': ' ',
+    }
+
+    return inputText.translate(str.maketrans(transDict))
+
 
 @app.route('/preprocess', methods=['POST'])
 def preprocess():
     if request.is_json:
         content = request.get_json()
-        return jsonify(json.dumps(tokenizer(content['context'])['input_ids'])), 200
+        replacedContent = translateString(content['context'])
+        replacedContent = removeEmoji(replacedContent)
+        vector = tokenizer(replacedContent)['input_ids']
+        vector.pop()
+        return jsonify(json.dumps(vector)), 200
     return jsonify(json.dumps([-1])), 400
 
 
