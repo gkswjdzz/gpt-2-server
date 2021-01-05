@@ -38,14 +38,23 @@ def translateString(inputText):
 
 @app.route('/preprocess', methods=['POST'])
 def preprocess():
-    if request.is_json:
-        content = request.get_json()
-        replacedContent = translateString(content['context'])
-        replacedContent = removeEmoji(replacedContent)
-        vector = tokenizer(replacedContent)['input_ids']
-        return jsonify(json.dumps(vector)), 200
-    return jsonify(json.dumps([-1])), 400
-
+    try:
+        if request.is_json:
+            content = request.get_json()
+            slicedContent = content['context'][:1024]
+            if len(slicedContent) is 0:
+                return jsonify(json.dumps([-1])), 400 
+            replacedContent = translateString(slicedContent)
+            replacedContent = removeEmoji(replacedContent)
+            vector = tokenizer(replacedContent, max_length=1024, truncation=True)['input_ids']
+            return jsonify(json.dumps(vector)), 200
+        return jsonify(json.dumps([-1])), 400
+    except:
+        if request.is_json:
+            print(f'error occur! string: {request.get_json()}.')
+        else:
+            print(f'error occur! {request.data}')
+        return jsonify(json.dumps([-1])), 500
 
 @app.route('/postprocess', methods=['POST'])
 def postprocess():
@@ -53,7 +62,8 @@ def postprocess():
         contents = request.get_json()
         result = {}
         for idx, content in enumerate(contents):
-            content.pop()
+            if len(content) is not 0:
+                content.pop()
             result[idx] = {'text': tokenizer.decode(content)}
         return jsonify(result), 200
     return jsonify({}), 400
