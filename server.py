@@ -32,7 +32,11 @@ TORCH_MODELS = {
 
 def send_message_to_slack(text):
     url = os.environ.get('SLACK_INCOMING_WEBHOOKS_URL')
-    payload = { "text" : text }
+    payload = {
+        "pretext": "*GPT2-AINIZE-API SERVER ERROR OCCURED!*",
+        "text" : f"*ERROR*: {text}",
+        "color": "danger",
+    }
     requests.post(url, json=payload)
 
     if env == "production":
@@ -71,9 +75,9 @@ def preprocess():
         return jsonify(json.dumps([-1])), 400
     except Exception as e:
         if request.is_json:
-            send_message_to_slack(f'error occur! \n input string: {request.get_json()}. \n {e}')
+            send_message_to_slack(f'*PRE_PROCESS* \n requested json: *{request.get_json()}*. \n *{e}*')
         else:
-            send_message_to_slack(f'error occur! \n input string: {request.data}. \n {e}')
+            send_message_to_slack(f'*PRE_PROCESS* \n requested data: *{request.data}*. \n *{e}*')
         return jsonify(json.dumps([-1])), 500
 
 
@@ -91,9 +95,9 @@ def postprocess():
         return jsonify({}), 400
     except Exception as e:
         if request.is_json:
-            send_message_to_slack(f'error occur! string: {request.get_json()}. {e}')
+            send_message_to_slack(f'*POST_PROCESS* \n requested json: *{request.get_json()}*. \n *{e}*')
         else:
-            send_message_to_slack(f'error occur! string: {request.data}. {e}')
+            send_message_to_slack(f'*POST_PROCESS* \n requested data: *{request.data}*. \n *{e}*')
         return jsonify({}), 500
 
 
