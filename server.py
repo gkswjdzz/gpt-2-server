@@ -22,7 +22,7 @@ tokenizer = AutoTokenizer.from_pretrained("gpt2-large")
 app = Flask(__name__)
 
 SERVERS = {
-  'length-1': os.environ.get('GPT2_LARGE_LENGTH_1_TENSORFLOW_SERVING_URL')
+  'length-1': os.environ.get('GPT2_LARGE_LENGTH_1_TENSORFLOW_SERVING_URL'),
   'length-x': os.environ.get('GPT2_LARGE_LENGTH_X_TENSORFLOW_SERVING_URL')
 }
 
@@ -59,6 +59,7 @@ def translateString(inputText):
 @app.route('/preprocess', methods=['POST'])
 def preprocess():
     try:
+        10/0
         if request.is_json:
             content = request.get_json()
             slicedContent = content['context'][:1024]
