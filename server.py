@@ -1,22 +1,42 @@
+import sentry_sdk
 from flask import Flask, request, jsonify
+from sentry_sdk.integrations.flask import FlaskIntegration
+import os
 import requests
 from lib import encode, decode
 import json
 from transformers import AutoTokenizer
 import emoji
 
+env = os.environ.get('PRODUCT_ENV')
+
+if env == "production":
+    sentry_sdk.init(
+        dsn=os.environ.get('SENTRY_DSN'),
+        integrations=[FlaskIntegration()],
+        traces_sample_rate=1.0
+    )
+
 tokenizer = AutoTokenizer.from_pretrained("gpt2-large")
 
 app = Flask(__name__)
 
 SERVERS = {
-  'length-1': 'https://length-1-gpt-2-large-tf-serving-gkswjdzz.endpoint.ainize.ai/v1/models/gpt-2-large:predict',
-  'length-x': 'https://main-gpt-2-large-tf-serving-gkswjdzz.endpoint.ainize.ai/v1/models/gpt-2-large:predict'
+  'length-1': os.environ.get('GPT2_LARGE_LENGTH_1_TENSORFLOW_SERVING_URL')
+  'length-x': os.environ.get('GPT2_LARGE_LENGTH_X_TENSORFLOW_SERVING_URL')
 }
 
 TORCH_MODELS = {
-  'base': 'https://base-gpt-2-large-torch-serving-gkswjdzz.endpoint.ainize.ai/predictions/gpt2-large'
+  'base': os.environ.get('GPT2_LARGE_BASE_TORCH_SERVER')
 }
+
+def send_message_to_slack(text):
+    url = os.environ.get('SLACK_INCOMING_WEBHOOKS_URL')
+    payload = { "text" : text }
+    requests.post(url, json=payload)
+
+    if env == "production":
+        sentry_sdk.capture_message(text, "fatal")
 
 def removeEmoji(text):
     return emoji.get_emoji_regexp().sub(u'', text)
@@ -49,24 +69,33 @@ def preprocess():
             vector = tokenizer(replacedContent, max_length=1024, truncation=True)['input_ids']
             return jsonify(json.dumps(vector)), 200
         return jsonify(json.dumps([-1])), 400
-    except:
+    except Exception as e:
         if request.is_json:
-            print(f'error occur! string: {request.get_json()}.')
+            send_message_to_slack(f'error occur! \n input string: {request.get_json()}. \n {e}')
         else:
-            print(f'error occur! {request.data}')
+            send_message_to_slack(f'error occur! \n input string: {request.data}. \n {e}')
         return jsonify(json.dumps([-1])), 500
+
 
 @app.route('/postprocess', methods=['POST'])
 def postprocess():
-    if request.is_json:
-        contents = request.get_json()
-        result = {}
-        for idx, content in enumerate(contents):
-            if len(content) is not 0:
-                content.pop()
-            result[idx] = {'text': tokenizer.decode(content)}
-        return jsonify(result), 200
-    return jsonify({}), 400
+    try:
+        10/0
+        if request.is_json:
+            contents = request.get_json()
+            result = {}
+            for idx, content in enumerate(contents):
+                if len(content) is not 0:
+                    content.pop()
+                result[idx] = {'text': tokenizer.decode(content)}
+            return jsonify(result), 200
+        return jsonify({}), 400
+    except Exception as e:
+        if request.is_json:
+            send_message_to_slack(f'error occur! string: {request.get_json()}. {e}')
+        else:
+            send_message_to_slack(f'error occur! string: {request.data}. {e}')
+        return jsonify({}), 500
 
 
 @app.route('/torch-serve', methods=['POST'])
@@ -93,7 +122,7 @@ def torch():
     }
 
     headers = {'Content-Type': 'application/json; charset=utf-8'}
-    res = requests.post('https://base-gpt-2-large-torch-serving-gkswjdzz.endpoint.ainize.ai/predictions/gpt2-large', headers=headers, data=json.dumps(data))
+    res = requests.post(TORCH_MODELS['base'], headers=headers, data=json.dumps(data))
 
     if res.status_code != 200:
         return jsonify({'message': 'error'}), res.status_code

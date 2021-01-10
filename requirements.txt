@@ -3,3 +3,4 @@ requests==2.24.0
 regex
 transformers
 emoji
+sentry-sdk[flask]
