@@ -59,7 +59,6 @@ def translateString(inputText):
 @app.route('/preprocess', methods=['POST'])
 def preprocess():
     try:
-        10/0
         if request.is_json:
             content = request.get_json()
             slicedContent = content['context'][:1024]
@@ -81,7 +80,6 @@ def preprocess():
 @app.route('/postprocess', methods=['POST'])
 def postprocess():
     try:
-        10/0
         if request.is_json:
             contents = request.get_json()
             result = {}
