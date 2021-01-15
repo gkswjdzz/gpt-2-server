@@ -60,6 +60,11 @@ def translateString(inputText):
     return inputText.translate(str.maketrans(transDict))
 
 
+@app.route("/healthz", methods=["GET"])
+def healthCheck():
+    return "OK", 200
+
+
 @app.route('/preprocess', methods=['POST'])
 def preprocess():
     try:
