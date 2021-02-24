@@ -5,7 +5,7 @@ import os
 import requests
 from lib import encode, decode
 import json
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, BertTokenizerFast
 import emoji
 
 env = os.environ.get('PRODUCT_ENV')
@@ -17,7 +17,10 @@ if env == "production":
         traces_sample_rate=1.0
     )
 
-tokenizer = AutoTokenizer.from_pretrained("gpt2-large")
+GPT3_MODEL_NAME = "kykim/gpt3-kor-small_based_on_gpt2"
+autoTokenizer = AutoTokenizer.from_pretrained("gpt2-large")
+# From https://github.com/kiyoungkim1/LMkor
+gpt3Tokenizer = BertTokenizerFast.from_pretrained(GPT3_MODEL_NAME)
 
 app = Flask(__name__)
 
@@ -27,14 +30,16 @@ SERVERS = {
 }
 
 TORCH_MODELS = {
-  'base': os.environ.get('GPT2_LARGE_BASE_TORCH_SERVER')
+    'base': os.environ.get('GPT2_LARGE_BASE_TORCH_SERVER'),
+    'gpt3': os.environ.get('GPT3_BASED_GPT2_TORCH_SERVER')
 }
+
 
 def send_message_to_slack(text):
     url = os.environ.get('SLACK_INCOMING_WEBHOOKS_URL')
     payload = {
         "pretext": "*GPT2-AINIZE-API SERVER ERROR OCCURED!*",
-        "text" : f"*ERROR*: {text}",
+        "text": f"*ERROR*: {text}",
         "color": "danger",
     }
     requests.post(url, json=payload)
@@ -42,12 +47,13 @@ def send_message_to_slack(text):
     if env == "production":
         sentry_sdk.capture_message(text, "fatal")
 
-def removeEmoji(text):
+
+def remove_emoji(text):
     return emoji.get_emoji_regexp().sub(u'', text)
 
 
-def translateString(inputText):
-    transDict = {
+def translate_string(input_text):
+    trans_dict = {
         '‘': '\'',
         '’': '\'',
         '“': '\"',
@@ -57,11 +63,11 @@ def translateString(inputText):
         '\u3000': ' ',
     }
 
-    return inputText.translate(str.maketrans(transDict))
+    return input_text.translate(str.maketrans(trans_dict))
 
 
 @app.route("/healthz", methods=["GET"])
-def healthCheck():
+def health_check():
     return "OK", 200
 
 
@@ -70,19 +76,25 @@ def preprocess():
     try:
         if request.is_json:
             content = request.get_json()
-            slicedContent = content['context'][:1024]
-            if len(slicedContent) is 0:
-                return jsonify(json.dumps([-1])), 400 
-            replacedContent = translateString(slicedContent)
-            replacedContent = removeEmoji(replacedContent)
-            vector = tokenizer(replacedContent, max_length=1024, truncation=True)['input_ids']
+            sliced_content = content['context'][:1024]
+            if len(sliced_content) == 0:
+                return jsonify(json.dumps([-1])), 400
+            replaced_content = translate_string(sliced_content)
+            replaced_content = remove_emoji(replaced_content)
+            vector = autoTokenizer(
+                replaced_content, max_length=1024, truncation=True
+            )['input_ids']
             return jsonify(json.dumps(vector)), 200
         return jsonify(json.dumps([-1])), 400
     except Exception as e:
         if request.is_json:
-            send_message_to_slack(f'*PRE_PROCESS* \n requested json: *{request.get_json()}*. \n *{e}*')
+            send_message_to_slack(
+                '*PRE_PROCESS*' +
+                f'\n requested json: *{request.get_json()}*. \n *{e}*')
         else:
-            send_message_to_slack(f'*PRE_PROCESS* \n requested data: *{request.data}*. \n *{e}*')
+            send_message_to_slack(
+                '*PRE_PROCESS*' +
+                f'\n requested data: *{request.data}*. \n *{e}*')
         return jsonify(json.dumps([-1])), 500
 
 
@@ -93,21 +105,25 @@ def postprocess():
             contents = request.get_json()
             result = {}
             for idx, content in enumerate(contents):
-                if len(content) is not 0:
+                if len(content) != 0:
                     content.pop()
-                result[idx] = {'text': tokenizer.decode(content)}
+                result[idx] = {'text': autoTokenizer.decode(content)}
             return jsonify(result), 200
         return jsonify({}), 400
     except Exception as e:
         if request.is_json:
-            send_message_to_slack(f'*POST_PROCESS* \n requested json: *{request.get_json()}*. \n *{e}*')
+            send_message_to_slack(
+                '*POST_PROCESS*' +
+                f'\n requested json: *{request.get_json()}*. \n *{e}*')
         else:
-            send_message_to_slack(f'*POST_PROCESS* \n requested data: *{request.data}*. \n *{e}*')
+            send_message_to_slack(
+                '*POST_PROCESS*' +
+                f'\n requested data: *{request.data}*. \n *{e}*')
         return jsonify({}), 500
 
 
 @app.route('/torch-serve', methods=['POST'])
-def torch():
+def torch_serve():
     keys = list(request.form.keys())
 
     if len(keys) != 3:
@@ -121,7 +137,7 @@ def torch():
     numResultsRequest = request.form[numResultsRequestKey]
     length = request.form[lengthKey]
 
-    encodedText = tokenizer.encode(rawText)
+    encodedText = autoTokenizer.encode(rawText)
 
     data = {
         'text': encodedText,
@@ -130,7 +146,8 @@ def torch():
     }
 
     headers = {'Content-Type': 'application/json; charset=utf-8'}
-    res = requests.post(TORCH_MODELS['base'], headers=headers, data=json.dumps(data))
+    res = requests.post(
+        TORCH_MODELS['base'], headers=headers, data=json.dumps(data))
 
     if res.status_code != 200:
         return jsonify({'message': 'error'}), res.status_code
@@ -139,7 +156,48 @@ def torch():
 
     result = dict()
     for idx, sampleOutput in enumerate(response):
-        result[idx] = tokenizer.decode(sampleOutput, skip_special_tokens=True)
+        result[idx] = autoTokenizer.decode(
+            sampleOutput, skip_special_tokens=True)
+
+    return result, 200
+
+
+@app.route('/infer/torch-gpt3-kor', methods=['POST'])
+def torch_gpt3():
+    keys = list(request.form.keys())
+
+    if len(keys) != 3:
+        return jsonify({'message': 'invalid body'}), 400
+
+    rawTextKey = list(request.form.keys())[0]
+    numResultsRequestKey = list(request.form.keys())[1]
+    lengthKey = list(request.form.keys())[2]
+
+    rawText = request.form[rawTextKey]
+    numResultsRequest = request.form[numResultsRequestKey]
+    length = request.form[lengthKey]
+
+    encodedText = gpt3Tokenizer.encode(rawText)
+    data = {
+        'text': encodedText,
+        'num_samples': int(numResultsRequest),
+        'length': int(length)
+    }
+
+    headers = {'Content-Type': 'application/json; charset=utf-8'}
+    res = requests.post(
+        TORCH_MODELS['gpt3'], headers=headers, data=json.dumps(data)
+    )
+
+    if res.status_code != 200:
+        return jsonify({'message': 'error'}), res.status_code
+
+    response = res.json()
+
+    result = dict()
+    for idx, sampleOutput in enumerate(response):
+        result[idx] = gpt3Tokenizer.decode(
+            sampleOutput, skip_special_tokens=True)
 
     return result, 200
 

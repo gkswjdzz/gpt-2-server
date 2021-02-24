@@ -4,3 +4,4 @@ regex
 transformers
 emoji
 sentry-sdk[flask]
+flake8
