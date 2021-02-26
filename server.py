@@ -8,6 +8,9 @@ import json
 from transformers import AutoTokenizer, BertTokenizerFast
 import emoji
 
+from cronjob import start_job, write_info
+from torch_serve import register_model, get_scale_model, set_scale_model
+
 env = os.environ.get('PRODUCT_ENV')
 
 if env == "production":
@@ -162,6 +165,62 @@ def torch_serve():
     return result, 200
 
 
+## inference 8080
+INFERENCE_URL = 'http://localhost:8080'
+## management 8081
+MANAGEMENT_URL = 'http://localhost:8081'
+## inbound port 8000
+# model-store directory
+MODEL_STORE_PATH = './sample/model-store'
+
+
+@app.route('/infer/<model>', methods=['POST'])
+def torch_serve_inference(model):
+    data = request.get_json()
+
+    print(f'get data: {data}')
+    
+    if data == None:
+        res.send('error')
+    
+    if model == 'gpt3':
+        data['text'] = gpt3Tokenizer.encode(data['text'])
+    else:
+        data['text'] = autoTokenizer(data['text'])['input_ids']
+
+    print(f'encoded data: {data["text"]}')
+    
+    scale = get_scale_model(model)
+
+    print(f'get scale: {scale}')
+    
+    # model is not registered or scale = 0
+    if not scale:
+        if scale == None:
+            ret = register_model(model)
+            if ret == None:
+                return jsonify({'message': 'model not found!'})
+        set_scale_model(model, 1)
+        print('set scale to 1')
+
+    result = inference_model(model, data)
+    print(f'result of inference: {result}')
+    
+    write_info(model, int(time()))
+    print(f'write info of {model}')
+
+    result = dict()
+    for idx, sampleOutput in enumerate(response):
+        if model == 'gpt3':
+            result[idx] = gpt3Tokenizer.decode(
+                sampleOutput, skip_special_tokens=True)
+        else :
+            result[idx] = autoTokenizer.decode(
+                sampleOutput, skip_special_tokens=True)
+
+    return result, 200
+
+
 @app.route('/infer/torch-gpt3-kor', methods=['POST'])
 def torch_gpt3():
     keys = list(request.form.keys())
@@ -235,4 +294,8 @@ def large():
 
 
 if __name__ == "__main__":
+    print('start job')
+    start_job()
+    print('start server')
     app.run(debug=False, port=8000, host='0.0.0.0', threaded=True)
+    
