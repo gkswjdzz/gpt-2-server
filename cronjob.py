@@ -2,6 +2,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from time import time
 from torch_serve import set_scale_model
 
+TIME = 50
+
 
 def write_info(model_name, infer_time):
     f = open('db.txt', 'a')
@@ -15,28 +17,29 @@ def runner():
 
     cur_time = int(time())
 
-    needUpdate = False
-    needUpdateModels = {}
-    TIME = 50
+    need_update = False
+    need_update_models = {}
+
     for line in lines:
         if line:
             model_name, latest_time = line.split(',')
             if cur_time - int(latest_time) > TIME:
-                needUpdate = True
+                need_update = True
                 set_scale_model(model_name, 0)
                 print(f'stop {model_name}')
             else:
-                if needUpdateModels[model_name] and needUpdateModels[model_name] < latest_time:
-                    needUpdateModels[model_name] = latest_time
-                    needUpdateModels = True
+                if need_update_models[model_name] \
+                        and need_update_models[model_name] < latest_time:
+                    need_update_models[model_name] = latest_time
+                    need_update_models = True
                 else:
-                    needUpdateModels[model_name] = latest_time 
+                    need_update_models[model_name] = latest_time
 
     f.close()
-    
-    if needUpdate:
+
+    if need_update:
         f = open('db.txt', 'w')
-        for key, value in needUpdateModels.items():
+        for key, value in need_update_models.items():
             f.write(f'{key},{value}')
         f.close()
 
