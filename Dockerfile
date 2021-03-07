@@ -2,7 +2,7 @@ FROM pytorch/torchserve:0.3.0-gpu
 
 USER root
 
-RUN mkdir -p /home/model-server/
+RUN mkdir -p /home/model-server/model-store
 # COPY model-store/ /home/model-server/
 
 COPY requirements.txt .
@@ -15,5 +15,4 @@ COPY . .
 
 EXPOSE 8000 8080 8081 8082
 
-USER root
 CMD ["torchserve", "--start", "--ncs", "--model-store=/home/model-server/model-store", "&", "python", "server.py"]
