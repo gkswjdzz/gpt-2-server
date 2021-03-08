@@ -13,6 +13,9 @@ WORKDIR /home/model-server
 
 COPY . .
 
-EXPOSE 8000 8080 8081 8082
+EXPOSE 8000
 
-CMD ["torchserve", "--start", "--ncs", "--model-store=/home/model-server/model-store", "&", "python", "server.py"]
+USER root
+
+RUN apt update && apt install -y wget vim
+ENTRYPOINT MODEL_DOWNLOAD_LINK=$MODEL_DOWNLOAD_LINK /bin/bash entrypoint.sh
