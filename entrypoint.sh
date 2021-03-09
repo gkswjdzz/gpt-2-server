@@ -1,7 +1,9 @@
 #!/bin/bash
 
-torchserve --start --ncs --model-store=/home/model-server/model-store \
-& python server.py \
-& wget -O model_download_link.txt $MODEL_DOWNLOAD_LINK
+wget -O model_download_link.txt $MODEL_DOWNLOAD_LINK
 
-/bin/bash model_download.sh model_download_link.txt
+head -n 5 model_download_link.txt > model_download_link2.txt
+/bin/bash model_download.sh model_download_link2.txt
+
+torchserve --start --ncs --model-store=/home/model-server/model-store \
+& python server.py

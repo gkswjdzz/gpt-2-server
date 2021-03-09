@@ -7,7 +7,7 @@ TIME = 50
 
 def write_info(model_name, infer_time):
     f = open('db.txt', 'a')
-    f.write(f'{model_name},{infer_time}')
+    f.write(f'{model_name},{infer_time}\n')
     f.close()
 
 
@@ -28,7 +28,7 @@ def runner():
                 set_scale_model(model_name, 0)
                 print(f'stop {model_name}')
             else:
-                if need_update_models[model_name] \
+                if model_name in need_update_models \
                         and need_update_models[model_name] < latest_time:
                     need_update_models[model_name] = latest_time
                     need_update_models = True
