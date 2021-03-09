@@ -13,9 +13,9 @@ while read line; do
   baseName=$(basename $line | cut -d'?' -f1)
   decodedName=$(urldecode $baseName)
   torchModelName=$(basename $decodedName)
-  
+
   printf '[%b] Downloading...\n' "$torchModelName"
-  wget -nc -O model-store/$torchModelName $line
+  wget -nc -q -O model-store/$torchModelName $line
   printf '[%b] Download Complete\n' "$torchModelName"
 done < $1
 
