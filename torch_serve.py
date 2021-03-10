@@ -14,7 +14,7 @@ INFERENCE_URL = 'http://localhost:8080'
 MANAGEMENT_URL = 'http://localhost:8081'
 # inbound port 8000
 # model-store directory
-MODEL_STORE_PATH = './sample/model-store'
+MODEL_STORE_PATH = './model-store'
 
 
 def get_scale_model(model_name):
@@ -23,7 +23,7 @@ def get_scale_model(model_name):
     res = requests.get(post_path)
 
     if res.status_code != 200:
-        return 0
+        return None
 
     res = res.json()
     print(res)
@@ -40,7 +40,7 @@ def set_scale_model(model_name, scale):
         'synchronous': True
     }
     post_path = MANAGEMENT_URL + path
-    res = requests.post(post_path, params=params)
+    res = requests.put(post_path, params=params)
 
     if res.status_code != 200:
         return None
@@ -68,12 +68,11 @@ def register_model(model_name):
 
 
 def inference_model(model, data):
-    if model not in TORCH_MODELS:
-        return None
-
+    path = f'/predictions/{model}'
+    
     headers = {'Content-Type': 'application/json; charset=utf-8'}
     res = requests.post(
-        TORCH_MODELS[model], headers=headers, data=json.dumps(data)
+        INFERENCE_URL + path, headers=headers, data=json.dumps(data)
     )
 
     if res.status_code != 200:
