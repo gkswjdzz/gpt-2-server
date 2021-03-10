@@ -31,7 +31,7 @@ def runner():
                 if need_update_models[model_name] \
                         and need_update_models[model_name] < latest_time:
                     need_update_models[model_name] = latest_time
-                    need_update_models = True
+                    need_update = True
                 else:
                     need_update_models[model_name] = latest_time
 
