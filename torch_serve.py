@@ -1,6 +1,7 @@
 import requests
 import os
 import json
+import subprocess
 
 TORCH_MODELS = {
     'base': os.environ.get('GPT2_LARGE_BASE_TORCH_SERVER'),
@@ -31,8 +32,48 @@ def get_scale_model(model_name):
     worker = res[0]['minWorkers']
     return worker
 
+def scale_0_least_recently_used():
+    f = open('db.txt', 'r')
+    lines = f.readlines()
+    f.close()
+
+    if line:
+        model_name, _ = line[0].split(',')
+        set_scale_model(model_name, 0)
+        print(f'stop {model_name}') 
+
+    f = open('db.txt','w')
+    for key, value in lines[1:]:
+        f.write(f'{key},{value}')
+    f.close()
+
 
 def set_scale_model(model_name, scale):
+    out = subprocess.check_output('nvidia-smi --query-gpu="memory.free" --format=csv,noheader', shell=True).decode('utf-8')
+    output = out.split('\n')
+    output = [out.split(' ')[0] for out in output]
+    output = list(filter(lambda x: x, output))
+    gpu_resource = [int(x) for x in output]
+    
+    out = subprocess.check_output(os.path.join(f'du {MODEL_STORE_PATH}/', model_name), shell=True).decode('utf-8')
+    out = out.split()
+    
+    if len(out) == 0:
+        return None
+    
+    model_size = int(out[0] / 1000)
+
+    print('model_size : {} MB'.format(model_size))
+    print('maximum free memory of gpus: {} MB'.format(max(gpu_resource)))
+
+    # MB
+    if model_size < 500 and max(gpu_resource) < 2000 :
+            scale_0_least_recently_used()
+    elif model_size < 2000 and max(gpu_resource) < 2500 :
+            scale_0_least_recently_used()
+    elif model_size < 3000 and max(gpu_resource) < 4500 :
+            scale_0_least_recently_used()
+
     path = f'/models/{model_name}'
     params = {
         'min_worker': scale,
