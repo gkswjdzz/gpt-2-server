@@ -55,7 +55,7 @@ def set_scale_model(model_name, scale):
     output = list(filter(lambda x: x, output))
     gpu_resource = [int(x) for x in output]
     
-    out = subprocess.check_output(os.path.join(f'du {MODEL_STORE_PATH}/', model_name), shell=True).decode('utf-8')
+    out = subprocess.check_output(os.path.join(f'du {MODEL_STORE_PATH}/', f'{model_name}.mar'), shell=True).decode('utf-8')
     out = out.split()
     
     if len(out) == 0:
