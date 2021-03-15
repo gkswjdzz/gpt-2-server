@@ -15,3 +15,7 @@ coverage.xml
 *,cover
 *.log
 .git
+
+model-store/
+model-store/gpt2-large.mar
+model-store/sample_model.mar
