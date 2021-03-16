@@ -19,7 +19,7 @@ def runner():
     cur_time = int(time())
 
     need_update = False
-    need_update_models = {}
+    need_update_models = dict()
 
     for line in lines:
         if line:
@@ -40,7 +40,7 @@ def runner():
     if need_update:
         f = open('db.txt', 'w')
         need_update_models = sorted(need_update_models.items(), key=(lambda x: x[1]))
-        for key, value in need_update_models.items():
+        for key, value in need_update_models:
             f.write(f'{key},{value}')
         f.close()
 
