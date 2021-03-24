@@ -4,6 +4,7 @@ import json
 import subprocess
 import threading
 import time
+import torch
 
 TORCH_MODELS = {
     'base': os.environ.get('GPT2_LARGE_BASE_TORCH_SERVER'),
@@ -21,6 +22,7 @@ MODEL_STORE_PATH = './model-store'
 
 lock = threading.Lock()
 
+
 def get_scale_model(model_name):
     path = f'/models/{model_name}'
     post_path = MANAGEMENT_URL + path
@@ -35,24 +37,76 @@ def get_scale_model(model_name):
     worker = res[0]['minWorkers']
     return worker
 
-def set_scale_0_least_recently_used():
+
+def get_all_gpu_usages():
+    path = "/models"
+    get_path = MANAGEMENT_URL + path
+    res = requests.get(get_path)
+    device_count = torch.cuda.device_count()
+    result = {}
+    for i in range(device_count):
+        result[i] = []
+
+    if res.status_code != 200:
+        return -1
+
+    models = res.json()["models"]
+
+    for model in models:
+        model_name = model["modelName"]
+        gpu_id = get_gpu_usage(model_name)
+        result[gpu_id].append(model_name)
+
+    return result
+
+
+def get_gpu_usage(model_name):
+    path = f"/models/{model_name}"
+    get_path = MANAGEMENT_URL + path
+    res = requests.get(get_path)
+    if res.status_code != 200:
+        return -1
+
+    models_status = res.json()
+    num_workers = len(models_status)
+    if num_workers == 0:
+        return -1
+
+    model_status = models_status[0]
+
+    if len(model_status["workers"]) == 0:
+        return -1
+
+    usage = model_status["workers"][0]["gpuUsage"]
+    gpu_id = int(usage.split("::")[1].split(' ')[0])
+    return gpu_id
+
+
+def set_scale_0_least_recently_used(gpu_id):
     f = open('db.txt', 'r')
     lines = f.readlines()
     f.close()
-
+    removed_model_name = None
+    models = get_all_gpu_usages()[gpu_id]
     if lines:
-        model_name, _ = lines[0].split(',')
-        if set_scale_model(model_name, 0) == None:
-            return False
-        print(f'stop {model_name}') 
+        for idx, line in enumerate(lines):
+            model_name, _ = line.split(',')
+            if model_name in models:
+                removed_model_name = model_name
+                if set_scale_model(model_name, 0) is None:
+                    return False
+                print(f'stop {model_name}')
+                break
 
-    f = open('db.txt','w')
-    for line in lines[1:]:
+    f = open('db.txt', 'w')
+    for line in lines:
         key, value = line.split(',')
-        f.write(f'{key},{value}')
+        if key != removed_model_name:
+            f.write(f'{key},{value}')
     f.close()
 
     return True
+
 
 def set_scale_model(model_name, scale, sleep=0):
     time.sleep(sleep)
@@ -74,20 +128,25 @@ def set_scale_model(model_name, scale, sleep=0):
         model_size = int(out[0]) / 1000
 
         print('model_size : {} MB'.format(model_size))
-        print('maximum free memory of gpus: {} MB'.format(max(gpu_resource)))
+        print('minimum free memory of gpus: {} MB'.format(min(gpu_resource)))
 
+        SM = 500
+        MD = 2500
+        LG = 4500
+
+        exceed_gpu_id = None
         # MB
-        if model_size < 500 and max(gpu_resource) < 2000:
-            if not set_scale_0_least_recently_used():
-                return jsonify({'message':'Fail to scale 0'}), 500
-            return set_scale_model(model_name, scale, 1)
-        elif 500 <= model_size < 2000 and max(gpu_resource) < 2500:
-            if not set_scale_0_least_recently_used():
-                return jsonify({'message':'Fail to scale 0'}), 500
-            return set_scale_model(model_name, scale, 1)
-        elif 2000 <= model_size < 3000 and max(gpu_resource) < 4500:
-            if not set_scale_0_least_recently_used():
-                return jsonify({'message':'Fail to scale 0'}), 500
+        if model_size < 500 and min(gpu_resource) < SM:
+            exceed_gpu_id = [i for i, e in enumerate(gpu_resource) if e < SM]
+        elif 500 <= model_size < 2000 and min(gpu_resource) < MD:
+            exceed_gpu_id = [i for i, e in enumerate(gpu_resource) if e < MD]
+        elif 2000 <= model_size < 3000 and min(gpu_resource) < LG:
+            exceed_gpu_id = [i for i, e in enumerate(gpu_resource) if e < LG]
+
+        if exceed_gpu_id is not None:
+            for idx in exceed_gpu_id:
+                if not set_scale_0_least_recently_used(idx):
+                    return {'message':'Fail to scale 0'}, 500
             return set_scale_model(model_name, scale, 1)
 
     path = f'/models/{model_name}'
