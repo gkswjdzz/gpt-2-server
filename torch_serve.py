@@ -20,8 +20,7 @@ MANAGEMENT_URL = 'http://localhost:8081'
 # model-store directory
 MODEL_STORE_PATH = './model-store'
 
-lock = threading.Lock()
-
+VERY_BUSY = False
 
 def get_scale_model(model_name):
     path = f'/models/{model_name}'
@@ -55,8 +54,10 @@ def get_all_gpu_usages():
     for model in models:
         model_name = model["modelName"]
         gpu_id = get_gpu_usage(model_name)
-        result[gpu_id].append(model_name)
-
+        print(gpu_id)
+        if gpu_id != -1:
+            result[gpu_id].append(model_name)
+        
     return result
 
 
@@ -144,6 +145,8 @@ def set_scale_model(model_name, scale, sleep=0):
             exceed_gpu_id = [i for i, e in enumerate(gpu_resource) if e < LG]
 
         if exceed_gpu_id is not None:
+            if VERY_BUSY:
+                return -1
             for idx in exceed_gpu_id:
                 if not set_scale_0_least_recently_used(idx):
                     return {'message':'Fail to scale 0'}, 500
@@ -156,8 +159,9 @@ def set_scale_model(model_name, scale, sleep=0):
         'synchronous': True
     }
     post_path = MANAGEMENT_URL + path
+    VERY_BUSY = True
     res = requests.put(post_path, params=params)
-
+    VERY_BUSY = False
     if res.status_code != 200:
         return None
 

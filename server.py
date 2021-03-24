@@ -292,4 +292,4 @@ if __name__ == "__main__":
     print('start job')
     start_job()
     print('start server')
-    app.run(debug=False, port=8000, host='0.0.0.0', threaded=True)
+    app.run(debug=True, port=8000, host='0.0.0.0', threaded=True)
