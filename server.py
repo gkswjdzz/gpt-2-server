@@ -193,8 +193,11 @@ def torch_serve_inference(model):
             ret = register_model(model)
             if ret is None:
                 return jsonify({'message': 'model not found!'})
-        if set_scale_model(model, 1) is None:
+        ret = set_scale_model(model, 1)
+        if ret is None:
             return jsonify({'message': 'model not  found!'}), 200
+        elif ret == -1:
+            return jsonify({'message':'Too many request! Please try again in a little while.'}), 429
         print('set scale to 1')
 
     response = inference_model(model, data)
