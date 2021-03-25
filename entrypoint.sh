@@ -12,4 +12,4 @@ ls -1 model-store | while read line; do
   curl -X POST "http://localhost:8081/models?url=${line}" 
   sleep 20
 done
-python server.py
+PYTHONIOENCODING=utf-8 python server.py
