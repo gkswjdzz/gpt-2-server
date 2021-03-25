@@ -139,3 +139,7 @@ cython_debug/
 
 .vscode
 __pycache__
+
+.idea
+model-store
+model_download_link*

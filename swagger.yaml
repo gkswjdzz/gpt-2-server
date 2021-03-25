@@ -1,194 +1,181 @@
 openapi: 3.0.1
-
 info:
-  title: gpt-2-large
-  description: |
-      This server provide predict next word using gpt-2-large model from [openai github](https://github.com/openai/gpt-2)
-  version: "0.1"
+  title: GPT2 APIs
+  description: API Document for serving gpt2 models with torch serve.
+  version: 0.3.0
 servers:
-  - url: https://main-gpt-2-server-gkswjdzz.endpoint.ainize.ai
+  - url: https://feature-add-torch-serve-gpt-2-server-gkswjdzz.endpoint.ainize.ai
 paths:
-  /preprocess:
-    post:
-      tags:
-      - pytorch-gpt-2-large
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                context:
-                  type: string
-              example: {
-                "context": "there is a boy"
-              }
+  /ping:
+    get:
+      description: Get TorchServe status.
+      operationId: ping
+      parameters: []
       responses:
         '200':
-          description: success
-          content:
-            application/json:
-              schema:
-                type: string
-                example: "[8117, 318, 257, 2933]"
-        '400':
-          description: Bad Request
-        '500':
-          description: Server side error
-  /postprocess:
-    post:
-      tags:
-      - pytorch-gpt-2-large
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: array
-              items:
-                type: array
-                items:
-                  type: integer
-              example: [
-                [
-                  3666,
-                  1438,
-                  318,
-                  685,
-                  3672,
-                  286
-                ],
-                [
-                  3666,
-                  1438,
-                  318,
-                  3271,
-                  11,
-                  290
-                ],
-                [
-                  3666,
-                  1438,
-                  318,
-                  3271,
-                  290,
-                  314
-                ],
-                [
-                  3666,
-                  1438,
-                  318,
-                  1757,
-                  1,
-                  373
-                ],
-                [
-                  3666,
-                  1438,
-                  318,
-                  4186,
-                  350,
-                  2852
-                ]
-              ]
-      responses:
-        '200':
-          description: success
+          description: TorchServe status
           content:
             application/json:
               schema:
                 type: object
+                required:
+                  - status
                 properties:
-                  index:
-                    type: object
-                    properties:
-                      text: string
-                example: {
-                  "0": {
-                    "text": "My name is [name of"
-                  },
-                  "1": {
-                    "text": "My name is David, and"
-                  },
-                  "2": {
-                    "text": "My name is David and I"
-                  },
-                  "3": {
-                    "text": "My name is John\" was"
-                  },
-                  "4": {
-                    "text": "My name is Tom Poul"
-                  }
-                }
-        '400':
-          description: Bad Request
-        '500':
-          description: Server side error
-  /torch-serve:
-    post:
-      tags:
-      - pytorch-gpt-2-large
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                context:
-                  type: string
-                  default: "Hi my name is "
-                numResultsRequest:
-                  type: number
-                  default: 3
-                length:
-                  type: number
-                  default: 4
-      responses:
-        '200':
-          description: success
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  index:
+                  status:
                     type: string
-                example: {
-                  "0": "Hi my name very good!!! Im jim"
-                }
-        '400':
-          description: Bad Request
+                    description: Overall status of the TorchServe.
         '500':
-          description: Server side error
-  /large:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - code
+                  - type
+                  - message
+                properties:
+                  code:
+                    type: integer
+                    description: Error code.
+                  type:
+                    type: string
+                    description: Error type.
+                  message:
+                    type: string
+                    description: Error message.
+      deprecated: true
+  '/infer/{model_name}':
     post:
-      tags:
-      - tensorflow-gpt-2-large
+      description: Predictions entry point to get inference using default model version.
+      parameters:
+        - in: path
+          name: model_name
+          description: Models that can send requests to the server. It may take 15 to 30 seconds on initial request. After that, you can receive requests quickly.
+          required: true
+          schema:
+            type: string
+            enum: [
+              "GPT2-Colloquial",
+              "GPT2-Rick-N-Morty",
+              "GPT2-large-Friends",
+              "GPT2-large_Fairytale",
+              "GPT2-large_LoveCraft",
+              "GPT2-large_MyLittlePony",
+              "GPT2-large_SuperheroesPower",
+              "GPT2-large_SuperheroesStory",
+              "GPT2-large_TheOffice",
+              "GPT2-large_game_of_thrones",
+              "GPT2-large_mcu",
+              "GPT2-large_simpsons",
+              "GPT2-marketing-man",
+              "KoCulture-Large",
+              "article_large",
+              "cover-letter-gpt2",
+              "gpt2-PopSongLyrics",
+              "gpt2-Spongebob50",
+              "gpt2-bbc",
+              "gpt2-large",
+              "gpt2-large_Futurama_50",
+              "gpt2_barackobama",
+              "gpt2_billgates",
+              "gpt2_debate",
+              "gpt2_dualipa",
+              "gpt2_elonmusk",
+              "gpt2_film",
+              "gpt2_iamcardib",
+              "gpt2_joebiden",
+              "gpt2_ladygaga",
+              "gpt2_stephenking",
+              "gpt2_story",
+              "gpt2_tim_cook",
+              "gpt2_trump"
+            ]
+            default: "gpt2-large"
       requestBody:
-        required: true
+        description: Input data format is defined by each model.
         content:
-          multipart/form-data:
+          'application/json':
             schema:
               type: object
               properties:
-                context:
+                text:
                   type: string
+                num_samples:
+                  type: integer
                 length:
-                  type: string
-                  enum: ['1', x]
+                  type: integer
+              example: {
+                "text": "Hi There is a Test.",
+                "num_samples": 5,
+                "length": 20
+              }
+        required: true
       responses:
         '200':
-          description: success
+          description: Output data format is defined by each model.
           content:
-            text/plain:
+            '*/*':
               schema:
                 type: string
-        '400':
-          description: Bad Request
+                format: binary
+        '404':
+          description: Model not found or Model Version not found
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - code
+                  - type
+                  - message
+                properties:
+                  code:
+                    type: integer
+                    description: Error code.
+                  type:
+                    type: string
+                    description: Error type.
+                  message:
+                    type: string
+                    description: Error message.
         '500':
-          description: Server side error
-tags:
-- name: pytorch-gpt-2-large
-- name: tensorflow-gpt-2-large
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - code
+                  - type
+                  - message
+                properties:
+                  code:
+                    type: integer
+                    description: Error code.
+                  type:
+                    type: string
+                    description: Error type.
+                  message:
+                    type: string
+                    description: Error message.
+        '503':
+          description: No worker is available to serve request
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - code
+                  - type
+                  - message
+                properties:
+                  code:
+                    type: integer
+                    description: Error code.
+                  type:
+                    type: string
+                    description: Error type.
+                  message:
+                    type: string
+                    description: Error message.

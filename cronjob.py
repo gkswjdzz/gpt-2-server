@@ -14,11 +14,12 @@ def write_info(model_name, infer_time):
 def runner():
     f = open('db.txt', 'r')
     lines = f.readlines()
+    f.close()
 
     cur_time = int(time())
 
     need_update = False
-    need_update_models = {}
+    need_update_models = dict()
 
     for line in lines:
         if line:
@@ -35,11 +36,11 @@ def runner():
                 else:
                     need_update_models[model_name] = latest_time
 
-    f.close()
 
     if need_update:
         f = open('db.txt', 'w')
-        for key, value in need_update_models.items():
+        need_update_models = sorted(need_update_models.items(), key=(lambda x: x[1]))
+        for key, value in need_update_models:
             f.write(f'{key},{value}')
         f.close()
 
