@@ -20,6 +20,7 @@ MANAGEMENT_URL = 'http://localhost:8081'
 # model-store directory
 MODEL_STORE_PATH = './model-store'
 
+global VERY_BUSY
 VERY_BUSY = False
 
 def get_scale_model(model_name):
@@ -110,18 +111,15 @@ def set_scale_0_least_recently_used(gpu_id):
 
 
 def set_scale_model(model_name, scale, sleep=0):
+    global VERY_BUSY
     time.sleep(sleep)
     if scale > 0:
-        print('before lock1...')
-        print('after lock1...')
         out = subprocess.check_output('nvidia-smi --query-gpu="memory.free" --format=csv,noheader', shell=True).decode('utf-8')
         output = out.split('\n')
         output = [out.split(' ')[0] for out in output]
         output = list(filter(lambda x: x, output))
         gpu_resource = [int(x) for x in output]
-        print('end out1')
         out = subprocess.check_output(os.path.join(f'du {MODEL_STORE_PATH}/', f'{model_name}.mar'), shell=True).decode('utf-8')
-        print(model_name)
         out = out.split()
         if len(out) == 0:
             return None
@@ -145,13 +143,13 @@ def set_scale_model(model_name, scale, sleep=0):
             exceed_gpu_id = [i for i, e in enumerate(gpu_resource) if e < LG]
 
         if exceed_gpu_id is not None:
-            if VERY_BUSY:
-                return -1
             for idx in exceed_gpu_id:
                 if not set_scale_0_least_recently_used(idx):
                     return {'message':'Fail to scale 0'}, 500
             return set_scale_model(model_name, scale, 1)
 
+    if VERY_BUSY:
+        return -1
     path = f'/models/{model_name}'
     params = {
         'min_worker': scale,
