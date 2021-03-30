@@ -14,6 +14,13 @@ from torch_serve \
     import register_model, get_scale_model, set_scale_model, inference_model
 
 env = os.environ.get('PRODUCT_ENV')
+model_dir_list = os.environ.get('MODEL_DIR_LIST')
+model_dict = {}
+
+for model_dir in model_dir_list.split(','):
+    model_dir_env = os.environ.get(model_dir)
+    for model in model_dir_env.split(','):
+        model_dict[model] = model_dir
 
 if env == "production":
     sentry_sdk.init(
@@ -183,28 +190,28 @@ def torch_serve_inference(model):
 
     print(f'encoded data: {data["text"]}')
 
-    scale = get_scale_model(model)
+    # scale = get_scale_model(model)
 
-    print(f'get scale: {scale}')
+    # print(f'get scale: {scale}')
 
     # model is not registered or scale = 0
-    if not scale:
-        if scale is None:
-            ret = register_model(model)
-            if ret is None:
-                return jsonify({'message': 'model not found!'})
-        ret = set_scale_model(model, 1)
-        if ret is None:
-            return jsonify({'message': 'model not  found!'}), 200
-        elif ret == -1:
-            return jsonify({'message': 'Too many request! Please try again in a little while.'}), 429
-        print('set scale to 1')
+    #if not scale:
+    #    if scale is None:
+    #        ret = register_model(model)
+    #        if ret is None:
+    #            return jsonify({'message': 'model not found!'})
+    #    ret = set_scale_model(model, 1)
+    #    if ret is None:
+    #        return jsonify({'message': 'model not  found!'}), 200
+    #    elif ret == -1:
+    #        return jsonify({'message': 'Too many request! Please try again in a little while.'}), 429
+    #    print('set scale to 1')
 
-    response = inference_model(model, data)
+    response = inference_model(model, data, path=model_dict[model])
     print(f'result of inference: {response}')
 
-    write_info(model, int(time()))
-    print(f'write info of {model}')
+    # write_info(model, int(time()))
+    # print(f'write info of {model}')
 
     # if None
     result = dict()
@@ -292,7 +299,7 @@ def large():
 
 
 if __name__ == "__main__":
-    print('start job')
-    start_job()
+    # print('start job')
+    # start_job()
     print('start server')
     app.run(debug=True, port=8000, host='0.0.0.0', threaded=True)

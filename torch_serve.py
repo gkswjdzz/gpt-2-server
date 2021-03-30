@@ -184,12 +184,11 @@ def register_model(model_name):
     return res
 
 
-def inference_model(model, data):
-    path = f'/predictions/{model}'
-    
+def inference_model(model, data, path=None):
+    path = (INFERENCE_URL if path is None else path) + f'/predictions/{model}'
     headers = {'Content-Type': 'application/json; charset=utf-8'}
     res = requests.post(
-        INFERENCE_URL + path, headers=headers, data=json.dumps(data)
+         path, headers=headers, data=json.dumps(data)
     )
 
     if res.status_code != 200:
