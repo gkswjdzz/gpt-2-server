@@ -18,9 +18,10 @@ model_dir_list = os.environ.get('MODEL_DIR_LIST')
 model_dict = {}
 
 for model_dir in model_dir_list.split(','):
+    print(model_dir)
     model_dir_env = os.environ.get(model_dir)
     for model in model_dir_env.split(','):
-        model_dict[model] = model_dir
+        model_dict[model] = model_dir.replace("_", "-")
 
 print(model_dict)
 if env == "production":
@@ -207,10 +208,11 @@ def torch_serve_inference(model):
     #    elif ret == -1:
     #        return jsonify({'message': 'Too many request! Please try again in a little while.'}), 429
     #    print('set scale to 1')
-
-    response = inference_model(model, data, path=model_dict[model])
+    branch_url = 'gpt-2-server-gkswjdzz.endpoint.ainize.ai'
+    response = inference_model(model, data, path=f'https://{model_dict[model]}-{branch_url}')
     print(f'result of inference: {response}')
-
+    if response is None:
+        return jsonify({'message': 'internal error!'}), 503
     # write_info(model, int(time()))
     # print(f'write info of {model}')
 
