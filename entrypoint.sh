@@ -4,7 +4,7 @@ while read line; do
 done < model.list
 cat model.list
 
-torchserve --start --ncs --model-store=/home/model-server/model-store --models=all
+torchserve --start --ncs --model-store=/home/model-server/model-store
 sleep 30
 ls -1 model-store | while read line; do
   curl -X POST "http://localhost:8081/models?initial_workers=1&synchronous=true&url=${line}"
