@@ -7,14 +7,23 @@ from lib import encode, decode
 import json
 from transformers import AutoTokenizer, BertTokenizerFast
 import emoji
-from time import time
+# from time import time
 
-from cronjob import start_job, write_info
+# from cronjob import start_job, write_info
 from torch_serve \
-    import register_model, get_scale_model, set_scale_model, inference_model
+    import inference_model # register_model, get_scale_model, set_scale_model,
 
 env = os.environ.get('PRODUCT_ENV')
+model_dir_list = os.environ.get('MODEL_DIR_LIST')
+model_dict = {}
 
+for model_dir in model_dir_list.split(','):
+    print(model_dir)
+    model_dir_env = os.environ.get(model_dir)
+    for model in model_dir_env.split(','):
+        model_dict[model] = model_dir.replace("_", "-")
+
+print(model_dict)
 if env == "production":
     sentry_sdk.init(
         dsn=os.environ.get('SENTRY_DSN'),
@@ -183,28 +192,29 @@ def torch_serve_inference(model):
 
     print(f'encoded data: {data["text"]}')
 
-    scale = get_scale_model(model)
+    # scale = get_scale_model(model)
 
-    print(f'get scale: {scale}')
+    # print(f'get scale: {scale}')
 
     # model is not registered or scale = 0
-    if not scale:
-        if scale is None:
-            ret = register_model(model)
-            if ret is None:
-                return jsonify({'message': 'model not found!'})
-        ret = set_scale_model(model, 1)
-        if ret is None:
-            return jsonify({'message': 'model not  found!'}), 200
-        elif ret == -1:
-            return jsonify({'message': 'Too many request! Please try again in a little while.'}), 429
-        print('set scale to 1')
-
-    response = inference_model(model, data)
+    #if not scale:
+    #    if scale is None:
+    #        ret = register_model(model)
+    #        if ret is None:
+    #            return jsonify({'message': 'model not found!'})
+    #    ret = set_scale_model(model, 1)
+    #    if ret is None:
+    #        return jsonify({'message': 'model not  found!'}), 200
+    #    elif ret == -1:
+    #        return jsonify({'message': 'Too many request! Please try again in a little while.'}), 429
+    #    print('set scale to 1')
+    branch_url = 'gpt-2-server-gkswjdzz.endpoint.ainize.ai'
+    response = inference_model(model, data, path=f'https://{model_dict[model]}-{branch_url}')
     print(f'result of inference: {response}')
-
-    write_info(model, int(time()))
-    print(f'write info of {model}')
+    if response is None:
+        return jsonify({'message': 'internal error!'}), 503
+    # write_info(model, int(time()))
+    # print(f'write info of {model}')
 
     # if None
     result = dict()
@@ -292,7 +302,7 @@ def large():
 
 
 if __name__ == "__main__":
-    print('start job')
-    start_job()
+    # print('start job')
+    # start_job()
     print('start server')
     app.run(debug=True, port=8000, host='0.0.0.0', threaded=True)

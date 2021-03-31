@@ -2,7 +2,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from time import time
 from torch_serve import set_scale_model
 
-TIME = 600
+TIME = 3600
 
 
 def write_info(model_name, infer_time):
