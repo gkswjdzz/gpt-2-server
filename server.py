@@ -7,11 +7,11 @@ from lib import encode, decode
 import json
 from transformers import AutoTokenizer, BertTokenizerFast
 import emoji
-from time import time
+# from time import time
 
-from cronjob import start_job, write_info
+# from cronjob import start_job, write_info
 from torch_serve \
-    import register_model, get_scale_model, set_scale_model, inference_model
+    import inference_model # register_model, get_scale_model, set_scale_model,
 
 env = os.environ.get('PRODUCT_ENV')
 model_dir_list = os.environ.get('MODEL_DIR_LIST')
@@ -22,6 +22,7 @@ for model_dir in model_dir_list.split(','):
     for model in model_dir_env.split(','):
         model_dict[model] = model_dir
 
+print(model_dict)
 if env == "production":
     sentry_sdk.init(
         dsn=os.environ.get('SENTRY_DSN'),

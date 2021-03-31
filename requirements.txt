@@ -5,5 +5,3 @@ transformers
 emoji
 sentry-sdk[flask]
 flake8
-torch
-apscheduler
