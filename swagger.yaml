@@ -58,7 +58,7 @@ paths:
             enum: [
               "GPT2-Colloquial",
               "GPT2-Rick-N-Morty",
-              "GPT2-large-Friends",
+              "gpt2-large_Friends",
               "GPT2-large_Fairytale",
               "GPT2-large_LoveCraft",
               "GPT2-large_MyLittlePony",
