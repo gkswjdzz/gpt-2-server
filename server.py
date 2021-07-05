@@ -90,11 +90,11 @@ def preprocess():
         if request.is_json:
             send_message_to_slack(
                 '*PRE_PROCESS*' +
-                f'\n requested json: *{request.get_json()}*. \n *{e}* \n IP: {request.remote_addr}')
+                f'\n requested json: *{request.get_json()}*. \n *{e}* \n user-agent: {request.user_agent.string}')
         else:
             send_message_to_slack(
                 '*PRE_PROCESS*' +
-                f'\n requested data: *{request.data}*. \n *{e}* \n IP: {request.remote_addr}')
+                f'\n requested data: *{request.data}*. \n *{e}* \n user-agent: {request.user_agent.string}')
         return jsonify(json.dumps([-1])), 500
 
 
@@ -114,11 +114,11 @@ def postprocess():
         if request.is_json:
             send_message_to_slack(
                 '*POST_PROCESS*' +
-                f'\n requested json: *{request.get_json()}*. \n *{e}* \n IP: {request.remote_addr}')
+                f'\n requested json: *{request.get_json()}*. \n *{e}* \n user-agent: {request.user_agent.string}')
         else:
             send_message_to_slack(
                 '*POST_PROCESS*' +
-                f'\n requested data: *{request.data}*. \n *{e}* \n IP: {request.remote_addr}')
+                f'\n requested data: *{request.data}*. \n *{e}* \n user-agent: {request.user_agent.string}')
         return jsonify({}), 500
 
 
