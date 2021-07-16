@@ -1,4 +1,4 @@
-FROM pytorch/torchserve:0.3.0-gpu
+FROM pytorch/torchserve:0.4.0-cpu
 
 USER root
 RUN apt-get update && \
